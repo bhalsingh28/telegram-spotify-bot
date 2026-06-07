@@ -3,7 +3,7 @@ from spotipy.oauth2 import SpotifyOAuth
 from dotenv import load_dotenv
 
 load_dotenv()
-
+ 
 sp_oauth = SpotifyOAuth(
     client_id=os.getenv("SPOTIFY_CLIENT_ID"),
     client_secret=os.getenv("SPOTIFY_CLIENT_SECRET"),
@@ -14,5 +14,3 @@ sp_oauth = SpotifyOAuth(
 def get_access_token():
     token_info = sp_oauth.get_access_token(as_dict=True)
     return token_info.get("access_token")
-
-

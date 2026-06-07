@@ -6,7 +6,7 @@ from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, CallbackContext
 
 load_dotenv()
-
+ 
 BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 ACCESS_TOKEN = get_access_token()
 
@@ -20,19 +20,62 @@ def check_access_token(response):
         return False
     return True
 
+# def get_playlists():
+#     headers = {"Authorization": f"Bearer {ACCESS_TOKEN}"}
+
+#     me = requests.get(
+#         "https://api.spotify.com/v1/me",
+#         headers=headers
+#     )
+
+#     my_id = me.json()["id"]
+
+#     response = requests.get(
+#         "https://api.spotify.com/v1/me/playlists",
+#         headers=headers
+#     )
+
+#     if response.status_code != 200:
+#         return None
+
+#     playlists = response.json()["items"]
+
+#     return {  
+#         idx + 1: (p["name"], p["id"])
+#         for idx, p in enumerate(playlists)
+#         if p["owner"]["id"] == my_id
+#     }
+
+# Get ALl the playlists
+
 def get_playlists():
-    url = "https://api.spotify.com/v1/me/playlists"
     headers = {"Authorization": f"Bearer {ACCESS_TOKEN}"}
-    
-    response = requests.get(url, headers=headers)
-    if not check_access_token(response):
-        return get_playlists()
-    
-    if response.status_code == 200:
-        playlists = response.json()["items"]
-        return {idx + 1: (p["name"], p["id"]) for idx, p in enumerate(playlists)}
-    else:
-        return None
+
+    me = requests.get(
+        "https://api.spotify.com/v1/me",
+        headers=headers
+    )
+
+    my_id = me.json()["id"]
+
+    playlists = []
+    url = "https://api.spotify.com/v1/me/playlists?limit=50"
+
+    while url:
+        response = requests.get(url, headers=headers)
+        data = response.json()
+        playlists.extend(data["items"])
+        url = data["next"]  # Spotify gives next page URL
+
+    my_playlists = [
+        p for p in playlists
+        if p["owner"]["id"] == my_id
+    ]
+
+    return {
+        idx + 1: (p["name"], p["id"])
+        for idx, p in enumerate(my_playlists)
+    }
     
 def create_playlist(name):
     url = "https://api.spotify.com/v1/me/playlists"
@@ -82,9 +125,6 @@ def add_tracks_to_playlist(playlist_id, track_ids):
         return add_tracks_to_playlist(playlist_id, track_ids)
     
     return response.status_code == 201
-
-# async def start(update: Update, context: CallbackContext):
-#     await update.message.reply_text("🎵 Welcome to Spotify Bot!\nUse /add <song> to add a song.\n /playlists to see your playlists.\n /create <name> to create new playlist.")
 
 async def start(update: Update, context: CallbackContext):
     message = (
